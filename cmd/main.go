@@ -75,22 +75,26 @@ func handle(conn net.Conn) (err error) {
 	}
 
 	data := buf[:n]
-	requesLineDelim := []byte{'\r', '\n'}
-	requesLineEnd := bytes.Index(data, requesLineDelim)
-	if requesLineEnd == -1 {
-
+	requestLineDelim := []byte{'\r', '\n'}
+	requestLineEnd := bytes.Index(data, requestLineDelim)
+	if requestLineEnd == -1 {
+		return
 	}
 
-	requesLine := string(data[:requesLineEnd])
+	requesLine := string(data[:requestLineEnd])
 	parts := strings.Split(requesLine, " ")
 	if len(parts) != 3 {
-	
+		return
 	}
 
 	method, path, version := parts[0], parts[1], parts[2]
-	if method != "GET"{}
+	if method != "GET"{
+		return
+	}
 
-	if version != "HTTP/1.1"{}
+	if version != "HTTP/1.1"{
+		return
+	}
 
 	if path == "/" {
 		body, err := ioutil.ReadFile("static/index.html")
