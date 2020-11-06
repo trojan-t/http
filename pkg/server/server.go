@@ -9,11 +9,6 @@ import (
 	"sync"
 )
 
-const (
-	host = "0.0.0.0"
-	port = "9999"
-)
-
 // HandlerFunc is ...
 type HandlerFunc func(conn net.Conn)
 
@@ -38,76 +33,52 @@ func (s *Server) Register(path string, handler HandlerFunc) {
 
 // Start is method
 func (s *Server) Start() error {
-	listener, err := net.Listen("tcp", s.addr)
+	listner, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		log.Print(err)
+		return err
 	}
-	defer func() {
-		if cerr := listener.Close(); cerr != nil {
-			if err != nil {
-				err = cerr
-				return
-			}
-			log.Print(cerr)
-		}
-	}()
+
 	for {
-		conn, err := listener.Accept()
+		conn, err := listner.Accept()
 		if err != nil {
-			log.Print(err)
+			log.Println(err)
 			continue
 		}
-
 		go s.handle(conn)
 	}
 }
 
-// handle is method
 func (s *Server) handle(conn net.Conn) {
 	defer func() {
-		if cerr := conn.Close(); cerr != nil {
-			log.Print(cerr)
+		if closeErr := conn.Close(); closeErr != nil {
+			log.Println(closeErr)
 		}
 	}()
+
 	buf := make([]byte, 4096)
-	for {
-		n, err := conn.Read(buf)
-		if err != io.EOF {
-			log.Printf("%s", buf[:n])
-			return
-		}
-		if err != nil {
-			return
-		}
-		data := buf[:n]
-		requestLineDelim := []byte{'\r', '\n'}
-		requestLineEnd := bytes.Index(data, requestLineDelim)
-		if requestLineEnd == -1 {
-			return
-		}
-		requesLine := string(data[:requestLineEnd])
-		parts := strings.Split(requesLine, " ")
-		if len(parts) != 3 {
-			return
-		}
-		path, version := parts[1], parts[2]
-		if version != "HTTP/1.1" {
-			return
-		}
-		handler := func(conn net.Conn) {
-			err := conn.Close()
-			if err != nil {
-				log.Print(err)
-			}
-		}
-		s.mu.RLock()
-		for i := 0; i < len(s.handlers); i++ {
-			if handl, ok := s.handlers[path]; ok {
-				handler = handl
-				break
-			}
-		}
+	n, err := conn.Read(buf)
+	if err == io.EOF {
+		log.Printf("%s", buf[:n])
+	}
+
+	data := buf[:n]
+	requestLineDelim := []byte{'\r', '\n'}
+	requestLineEnd := bytes.Index(data, requestLineDelim)
+	if requestLineEnd == -1 {
+		log.Print("requestLineEndErr: ", requestLineEnd)
+	}
+
+	requestLine := string(data[:requestLineEnd])
+	parts := strings.Split(requestLine, " ")
+	if len(parts) != 3 {
+		log.Print("partsErr: ", parts)
+	}
+
+	s.mu.RLock()
+	if handler, ok := s.handlers[parts[1]]; ok {
 		s.mu.RUnlock()
 		handler(conn)
 	}
+	return
 }
