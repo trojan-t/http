@@ -1,11 +1,11 @@
 package server
 
 import (
-	"strings"
 	"bytes"
 	"io"
 	"log"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -14,8 +14,8 @@ type HandlerFunc func(conn net.Conn)
 
 // Server is struct
 type Server struct {
-	addr string
-	mu sync.RWMutex
+	addr     string
+	mu       sync.RWMutex
 	handlers map[string]HandlerFunc
 }
 
@@ -33,14 +33,14 @@ func (s *Server) Register(path string, handler HandlerFunc) {
 
 // Start is method
 func (s *Server) Start() error {
-	listner, err := net.Listen("tcp", s.addr)
+	listener, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		log.Print(err)
 		return err
 	}
 
 	for {
-		conn, err := listner.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Println(err)
 			continue
@@ -55,26 +55,22 @@ func (s *Server) handle(conn net.Conn) {
 			log.Println(closeErr)
 		}
 	}()
-
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	if err == io.EOF {
 		log.Printf("%s", buf[:n])
 	}
-
 	data := buf[:n]
 	requestLineDelim := []byte{'\r', '\n'}
 	requestLineEnd := bytes.Index(data, requestLineDelim)
 	if requestLineEnd == -1 {
 		log.Print("requestLineEndErr: ", requestLineEnd)
 	}
-
 	requestLine := string(data[:requestLineEnd])
 	parts := strings.Split(requestLine, " ")
 	if len(parts) != 3 {
 		log.Print("partsErr: ", parts)
 	}
-
 	s.mu.RLock()
 	if handler, ok := s.handlers[parts[1]]; ok {
 		s.mu.RUnlock()
