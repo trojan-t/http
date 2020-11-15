@@ -1,33 +1,31 @@
 package main
 
-func main(){
+import (
+	"net"
+	"net/http"
+	"os"
+
+	"github.com/trojan-t/http/cmd/app"
+	"github.com/trojan-t/http/pkg/banners"
+)
+
+func main() {
+	host := "0.0.0.0"
+	port := "9999"
+	if err := execute(host, port); err != nil {
+		os.Exit(1)
+	}
 }
 
-// import (
-// 	"net/url"
-// 	"log"
-// 	"net"
-// 	"os"
+func execute(server, port string) (err error) {
+	mux := http.NewServeMux()
+	bannersSvc := banners.NewService()
+	serverHandler := app.NewServer(mux, bannersSvc)
+	serverHandler.Init()
 
-// 	"github.com/trojan-t/http/pkg/server"
-// )
-
-// func main() {
-// 	host := "0.0.0.0"
-// 	port := "9999"
-
-// 	if err := execute(host, port); err != nil {
-// 		os.Exit((1))
-// 	}
-// }
-
-// func execute(host string, port string) (err error) {
-// 	srv := server.NewServer(net.JoinHostPort(host, port))
-// 	srv.Register("/payments", func(req *server.Request) {
-// 		uri, err := url.ParseRequestURI()
-// 		id := req.QueryParams["id"]
-// 		log.Print(id)
-// 	})
-	
-// 	return srv.Start()
-// }
+	srv := &http.Server{
+		Addr:    net.JoinHostPort(server, port),
+		Handler: serverHandler,
+	}
+	return srv.ListenAndServe()
+}
