@@ -3,13 +3,14 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/trojan-t/http/pkg/banners"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/trojan-t/http/pkg/banners"
 )
 
 // Server is struct
@@ -38,7 +39,7 @@ func (s *Server) Init() {
 
 // handleGetAllBanners is method
 func (s *Server) handleGetAllBanners(writer http.ResponseWriter, request *http.Request) {
-	items, err := s.bannersSVC.GetAll(request.Context())
+	items, err := s.bannersSVC.All(request.Context())
 	if err != nil {
 		log.Println(err)
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -65,7 +66,7 @@ func (s *Server) handleGetBannerByID(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	item, err := s.bannersSVC.GetByID(request.Context(), id)
+	item, err := s.bannersSVC.ByID(request.Context(), id)
 	if err != nil {
 		log.Println(err)
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -78,7 +79,6 @@ func (s *Server) handleGetBannerByID(writer http.ResponseWriter, request *http.R
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
 	jsonResponse(writer, data)
 }
 
@@ -126,7 +126,6 @@ func (s *Server) handleSaveBanner(writer http.ResponseWriter, request *http.Requ
 		Content: request.FormValue("content"),
 		Button:  request.FormValue("button"),
 		Link:    request.FormValue("link"),
-		Image:   "1.png",
 	}
 
 	item, err := s.bannersSVC.Save(request.Context(), banner)
