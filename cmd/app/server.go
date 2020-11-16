@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/trojan-t/http/pkg/banners"
 )
@@ -49,7 +48,11 @@ func (s *Server) handleGetAllBanners(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	jsonResponse(writer, data)
+	writer.Header().Set("Content-Type", "application/json")
+	_, err = writer.Write(data)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 // handleGetBannerByID is CRUD method
@@ -76,35 +79,59 @@ func (s *Server) handleGetBannerByID(writer http.ResponseWriter, request *http.R
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	
-	jsonResponse(writer, data)
+
+	writer.Header().Set("Content-Type", "application/json")
+	_, err = writer.Write(data)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func (s *Server) handleSaveBanner(writer http.ResponseWriter, request *http.Request) {
-	log.Println("requestURI: ", request.RequestURI)
-
-	idParam := request.PostFormValue("id")
+	idParam := request.URL.Query().Get("id")
+	titleParam := request.URL.Query().Get("title")
+	contentParam := request.URL.Query().Get("content")
+	btnParam := request.URL.Query().Get("button")
+	linkParam := request.URL.Query().Get("link")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		log.Println(err)
 		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	banner := &banners.Banner{
-		ID:      id,
-		Title:   request.FormValue("title"),
-		Content: request.FormValue("content"),
-		Button:  request.FormValue("button"),
-		Link:    request.FormValue("link"),
-	}
-	image, header, err := request.FormFile("image")
-	if err == nil {
-		var name = strings.Split(header.Filename, ".")
-		//banner.Image = name[len(name)-1]
-		banner.Image = name[1]
+
+	if titleParam == "" {
+		log.Println("Error")
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
 	}
 
-	item, err := s.bannersSvc.Save(request.Context(), banner, image)
+	if contentParam == "" {
+		log.Println("Error")
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	if btnParam == "" {
+		log.Println("Error")
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	if linkParam == "" {
+		log.Println("Error")
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	banner := &banners.Banner{
+		ID:      id,
+		Title:   titleParam,
+		Content: contentParam,
+		Button:  btnParam,
+		Link:    linkParam,
+	}
+
+	item, err := s.bannersSvc.Save(request.Context(), banner)
 	if err != nil {
 		log.Println(err)
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -118,7 +145,11 @@ func (s *Server) handleSaveBanner(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	jsonResponse(writer, data)
+	writer.Header().Set("Content-Type", "application/json")
+	_, err = writer.Write(data)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 // handleRemoveByID is
@@ -145,13 +176,9 @@ func (s *Server) handleRemoveByID(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	jsonResponse(writer, data)
-}
-
-func jsonResponse(writer http.ResponseWriter, data []byte) {
 	writer.Header().Set("Content-Type", "application/json")
-	_, err := writer.Write(data)
+	_, err = writer.Write(data)
 	if err != nil {
-		log.Println("Error write response: ", err)
+		log.Print(err)
 	}
 }
