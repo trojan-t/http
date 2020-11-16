@@ -22,6 +22,7 @@ type Banner struct {
 type Service struct {
 	mu    sync.RWMutex
 	items []*Banner
+	NextID int64
 }
 
 // NewService creates new service
@@ -50,12 +51,11 @@ func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
 
 // Save is method
 func (s *Service) Save(ctx context.Context, item *Banner) (*Banner, error) {
-	var ID int64
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if item.ID == 0 {
-		ID++
-		item.ID = ID
+		s.NextID++
+		item.ID = s.NextID
 		s.items = append(s.items, item)
 	} 
 	for i, banner := range s.items {
