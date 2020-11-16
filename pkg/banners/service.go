@@ -3,29 +3,16 @@ package banners
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
-	"strconv"
 	"sync"
 )
 
-// NotFound is
-var NotFound = errors.New("Not Found")
+// STORAGE is path
+const STORAGE = "./web/banners/"
 
-// Service представляет собой сервис по управлению баннерами
-type Service struct {
-	mu     sync.RWMutex
-	items  []*Banner
-	NextID int64
-}
-
-// NewService создаёт сервис
-func NewService() *Service {
-	return &Service{items: make([]*Banner, 0)}
-}
-
-// Banner представляет собой баннер
+// Banner is struct
 type Banner struct {
 	ID      int64
 	Title   string
@@ -35,70 +22,27 @@ type Banner struct {
 	Image   string
 }
 
-// All возвращает все существующие баннеры
+// Service is struct
+type Service struct {
+	mu    sync.RWMutex
+	items []*Banner
+	NextID int64
+}
+
+//NewService construct
+func NewService() *Service {
+	return &Service{items: make([]*Banner, 0)}
+}
+
+// All is method
 func (s *Service) All(ctx context.Context) ([]*Banner, error) {
-	log.Println("мы в All")
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.items, nil
 }
 
-// Save сохраняет/обновляет баннер
-func (s *Service) Save(ctx context.Context, item *Banner, image multipart.File) (*Banner, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if item.ID == 0 {
-		s.NextID++
-		item.ID = s.NextID
-
-		if item.Image != "" {
-			item.Image = strconv.Itoa(int(item.ID)) + "." + item.Image
-			data, err := ioutil.ReadAll(image)
-			if err != nil {
-				return nil, NotFound
-			}
-			err = ioutil.WriteFile("./web/banners/"+item.Image, data, 0666)
-			if err != nil {
-				log.Print(err)
-				return nil, NotFound
-			}
-		}
-		s.items = append(s.items, item)
-		return item, nil
-	}
-
-	for index, banner := range s.items {
-		if banner.ID == item.ID {
-			if item.Image != "" {
-
-				item.Image = strconv.Itoa(int(item.ID)) + "." + item.Image
-				data, err := ioutil.ReadAll(image)
-				if err != nil {
-					log.Print(err)
-					return nil, err
-				}
-				err = ioutil.WriteFile("./web/banners/"+item.Image, data, 0666)
-				if err != nil {
-					log.Print(err)
-					return nil, err
-				}
-			} else {
-				item.Image = s.items[index].Image
-			}
-			s.items[index] = item
-			return item, nil
-
-		}
-
-	}
-	log.Println("мы возвращаем ошибку 8")
-	return nil, NotFound
-}
-
-// ByID возвращает баннер по идентификатору
+// ByID is method
 func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
-	log.Println("мы в ByID")
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, banner := range s.items {
@@ -106,20 +50,67 @@ func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
 			return banner, nil
 		}
 	}
-	log.Println("мы в ByID2")
-	return nil, NotFound
+	return nil, errors.New("banner by id not found")
 }
 
-// RemoveByID удаляет баннер по идентификатору
-func (s *Service) RemoveByID(ctx context.Context, id int64) (*Banner, error) {
-	log.Println("мы в RemoveByID")
+// Save is method
+func (s *Service) Save(ctx context.Context, item *Banner, image multipart.File) (*Banner, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for index, banner := range s.items {
+	if item.ID == 0 {
+		s.NextID++
+		item.ID = s.NextID
+		if item.Image != "" {
+			item.Image = fmt.Sprint(item.ID) + "." + item.Image
+			err := uploadFile(image, item)
+			if err != nil {
+				return nil, err
+			}
+		}
+		s.items = append(s.items, item)
+		return item, nil
+	}
+	for i, banner := range s.items {
+		if banner.ID == item.ID {
+			if item.Image != "" {
+				item.Image = fmt.Sprint(item.ID) + "." + item.Image
+				err := uploadFile(image, item)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				item.Image = s.items[i].Image
+			}
+			s.items[i] = item
+			return item, nil
+		}
+	}
+
+	return nil, errors.New("banner save error")
+}
+
+// RemoveByID is method
+func (s *Service) RemoveByID(ctx context.Context, id int64) (*Banner, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for i, banner := range s.items {
 		if banner.ID == id {
-			s.items = append(s.items[:index], s.items[index+1:]...)
+			s.items = append(s.items[:i], s.items[i+1:]...)
 			return banner, nil
 		}
 	}
-	return nil, NotFound
+	return nil, errors.New("banner remove by id not found")
+}
+func uploadFile(file multipart.File, banner *Banner) error {
+	var data, err = ioutil.ReadAll(file)
+	if err != nil {
+		return errors.New("error read file")
+	}
+
+	err = ioutil.WriteFile(STORAGE+banner.Image, data, 0666)
+	if err != nil {
+		return errors.New("error to write file")
+	}
+
+	return nil
 }
