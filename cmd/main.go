@@ -11,7 +11,7 @@ import (
 
 func main() {
 	host := "0.0.0.0"
-	port := "9999"
+	port := "1234"
 	if err := execute(host, port); err != nil {
 		os.Exit(1)
 	}
