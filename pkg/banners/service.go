@@ -3,10 +3,28 @@ package banners
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"mime/multipart"
 	"sync"
 )
 
-// Service presents struct
+// STORAGE is path
+const STORAGE = "./web/banners/"
+
+var starID int64 = 0
+
+// Banner is struct
+type Banner struct {
+	ID      int64
+	Title   string
+	Content string
+	Button  string
+	Link    string
+	Image   string
+}
+
+// Service is struct
 type Service struct {
 	mu    sync.RWMutex
 	items []*Banner
@@ -17,44 +35,14 @@ func NewService() *Service {
 	return &Service{items: make([]*Banner, 0)}
 }
 
-// Banner presents banner :)
-type Banner struct {
-	ID      int64
-	Title   string
-	Content string
-	Button  string
-	Link    string
-}
-
-// All returns all banners
+// All is method
 func (s *Service) All(ctx context.Context) ([]*Banner, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.items, nil
 }
 
-// Save save/updates banner
-func (s *Service) Save(ctx context.Context, item *Banner) (*Banner, error) {
-	var i int64 = 0
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if item.ID == 0 {
-		i++
-		item.ID = i
-		s.items = append(s.items, item)
-		return item, nil
-	}
-
-	for index, banner := range s.items {
-		if banner.ID == item.ID {
-			s.items[index] = item
-			return item, nil
-		}
-	}
-	return nil, errors.New("item not found")
-}
-
-// ByID return banner by ID
+// ByID is method
 func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -63,18 +51,67 @@ func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
 			return banner, nil
 		}
 	}
-	return nil, errors.New("item not found")
+	return nil, errors.New("banner by id not found")
 }
 
-// RemoveByID removes banner by ID
+// Save is method
+func (s *Service) Save(ctx context.Context, item *Banner, image multipart.File) (*Banner, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if item.ID == 0 {
+		starID++
+		item.ID = starID
+		if item.Image != "" {
+			item.Image = fmt.Sprint(item.ID) + "." + item.Image
+			err := uploadFile(image, item)
+			if err != nil {
+				return nil, err
+			}
+		}
+		s.items = append(s.items, item)
+		return item, nil
+	}
+	for i, banner := range s.items {
+		if banner.ID == item.ID {
+			if item.Image != "" {
+				item.Image = fmt.Sprint(item.ID) + "." + item.Image
+				err := uploadFile(image, item)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				item.Image = s.items[i].Image
+			}
+			s.items[i] = item
+			return item, nil
+		}
+	}
+
+	return nil, errors.New("banner save error")
+}
+
+// RemoveByID is method
 func (s *Service) RemoveByID(ctx context.Context, id int64) (*Banner, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for index, banner := range s.items {
+	for i, banner := range s.items {
 		if banner.ID == id {
-			s.items = append(s.items[:index], s.items[index+1:]...)
+			s.items = append(s.items[:i], s.items[i+1:]...)
 			return banner, nil
 		}
 	}
-	return nil, errors.New("item not found")
+	return nil, errors.New("banner remove by id not found")
+}
+func uploadFile(file multipart.File, banner *Banner) error {
+	var data, err = ioutil.ReadAll(file)
+	if err != nil {
+		return errors.New("error read file")
+	}
+
+	err = ioutil.WriteFile(STORAGE+banner.Image, data, 0666)
+	if err != nil {
+		return errors.New("error to write file")
+	}
+
+	return nil
 }
