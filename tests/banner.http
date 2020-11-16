@@ -1,34 +1,8 @@
-POST http://127.0.0.1:9999/banners.save?id=11
-Content-Type: multipart/form-data; boundary=WebAppBoundary
-
---WebAppBoundary
-Content-Disposition: form-data; name="title"
-Content-Type: text/plain
-
-Banner-Title
-
---WebAppBoundary
-Content-Disposition: form-data; name="content"
-Content-Type: text/plain
-
-Banner-content
---WebAppBoundary
-Content-Disposition: form-data; name="image"; filename="go.mod"
-Content-Type: application/json
-
-< ../go.mod
---WebAppBoundary--
-
+POST http://localhost:9999/banners.save?id=0&title=Some Title text&content=Some content text&button=Check&link=https://alif.tj/deposit#CountYourIncome
 ###
 GET http://127.0.0.1:9999/banners.getAll
-Accept: application/json
-
-> {%
-client.test("Request executed successfully", function() {
-  client.assert(response.status === 200, "Response status is not 200");
-});
-%}
+# Accept: application/json
 
 ###
-GET http://127.0.0.1:9999/banners.getById?id=999
+GET http://127.0.0.1:9999/banners.getById?id=1
 Accept: application/json
