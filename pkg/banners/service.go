@@ -50,12 +50,18 @@ func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
 
 // Save is method
 func (s *Service) Save(ctx context.Context, item *Banner) (*Banner, error) {
-	var startID int64
+	var ID int64
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	for _, banner := range s.items {
+		if banner.ID != item.ID {
+			s.items = append(s.items, item)
+			return item, nil
+		}
+	}
 	if item.ID == 0 {
-		startID++
-		item.ID = startID
+		ID++
+		item.ID = ID
 		s.items = append(s.items, item)
 		return item, nil
 	}
