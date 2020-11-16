@@ -26,7 +26,6 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 // Init is method
 func (s *Server) Init() {
-	log.Println("Init method")
 	s.mux.HandleFunc("/banners.getAll", s.handleGetAllBanners)
 	s.mux.HandleFunc("/banners.getById", s.handleGetBannerByID)
 	s.mux.HandleFunc("/banners.save", s.handleSaveBanner)

@@ -53,17 +53,12 @@ func (s *Service) Save(ctx context.Context, item *Banner) (*Banner, error) {
 	var ID int64
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, banner := range s.items {
-		if banner.ID != item.ID {
-			s.items = append(s.items, item)
-			return item, nil
-		}
-	}
 	if item.ID == 0 {
 		ID++
 		item.ID = ID
 		s.items = append(s.items, item)
-		return item, nil
+	} else if item.ID != 0 {
+		s.items = append(s.items, item)
 	}
 	for i, banner := range s.items {
 		if banner.ID == item.ID {

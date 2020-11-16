@@ -17,14 +17,14 @@ func main() {
 	}
 }
 
-func execute(server, port string) (err error) {
+func execute(host, port string) (err error) {
 	mux := http.NewServeMux()
 	bannersSvc := banners.NewService()
 	serverHandler := app.NewServer(mux, bannersSvc)
 	serverHandler.Init()
 
 	srv := &http.Server{
-		Addr:    net.JoinHostPort(server, port),
+		Addr:    net.JoinHostPort(host, port),
 		Handler: serverHandler,
 	}
 	return srv.ListenAndServe()
