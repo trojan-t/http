@@ -51,7 +51,7 @@ func (s *Service) ByID(ctx context.Context, id int64) (*Banner, error) {
 			return banner, nil
 		}
 	}
-	return nil, errors.New("banner by id not found")
+	return nil, errors.New("banner not found")
 }
 
 // Save is method

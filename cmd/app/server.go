@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"github.com/trojan-t/http/pkg/banners"
 )
 
+// Server is struct
 type Server struct {
 	mux        *http.ServeMux
 	bannersSvc *banners.Service
@@ -23,12 +25,13 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	s.mux.ServeHTTP(writer, request)
 }
 
+// Init is method
 func (s *Server) Init() {
 	log.Println("Init method")
 	s.mux.HandleFunc("/banners.getAll", s.handleGetAllBanners)
-	s.mux.HandleFunc("/banners.getById", s.handleGetBannerById)
+	s.mux.HandleFunc("/banners.getById", s.handleGetBannerByID)
 	s.mux.HandleFunc("/banners.save", s.handleSaveBanner)
-	s.mux.HandleFunc("/banners.removeById", s.handleRemoveById)
+	s.mux.HandleFunc("/banners.removeById", s.handleRemoveByID)
 }
 
 func (s *Server) handleGetAllBanners(writer http.ResponseWriter, request *http.Request) {
@@ -49,8 +52,10 @@ func (s *Server) handleGetAllBanners(writer http.ResponseWriter, request *http.R
 	jsonResponse(writer, data)
 }
 
-func (s *Server) handleGetBannerById(writer http.ResponseWriter, request *http.Request) {
+// handleGetBannerByID is CRUD method
+func (s *Server) handleGetBannerByID(writer http.ResponseWriter, request *http.Request) {
 	idParam := request.URL.Query().Get("id")
+
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		log.Println(err)
@@ -71,7 +76,7 @@ func (s *Server) handleGetBannerById(writer http.ResponseWriter, request *http.R
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
+	
 	jsonResponse(writer, data)
 }
 
@@ -116,7 +121,8 @@ func (s *Server) handleSaveBanner(writer http.ResponseWriter, request *http.Requ
 	jsonResponse(writer, data)
 }
 
-func (s *Server) handleRemoveById(writer http.ResponseWriter, request *http.Request) {
+// handleRemoveByID is
+func (s *Server) handleRemoveByID(writer http.ResponseWriter, request *http.Request) {
 	idParam := request.URL.Query().Get("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
